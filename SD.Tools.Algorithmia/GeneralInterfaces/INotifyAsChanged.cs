@@ -1,9 +1,9 @@
 ﻿//////////////////////////////////////////////////////////////////////
-// Algorithmia is (c) 2014 Solutions Design. All rights reserved.
+// Algorithmia is (c) 2018 Solutions Design. All rights reserved.
 // https://github.com/SolutionsDesign/Algorithmia
 //////////////////////////////////////////////////////////////////////
 // COPYRIGHTS:
-// Copyright (c) 2014 Solutions Design. All rights reserved.
+// Copyright (c) 2018 Solutions Design. All rights reserved.
 // 
 // The Algorithmia library sourcecode and its accompanying tools, tests and support code
 // are released under the following license: (BSD2)
@@ -35,6 +35,7 @@
 //		- Frans Bouma [FB]
 //////////////////////////////////////////////////////////////////////
 using System;
+using SD.Tools.Algorithmia.GeneralDataStructures;
 
 namespace SD.Tools.Algorithmia.GeneralInterfaces
 {
@@ -48,6 +49,6 @@ namespace SD.Tools.Algorithmia.GeneralInterfaces
 		/// <summary>
 		/// Raised when the implementing element has been changed
 		/// </summary>
-		event EventHandler HasBeenChanged;
+		event MemberValueElementChangedHandler HasBeenChanged;
 	}
 }

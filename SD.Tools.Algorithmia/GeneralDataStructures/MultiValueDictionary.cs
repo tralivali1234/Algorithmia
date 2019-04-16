@@ -1,9 +1,9 @@
 ﻿//////////////////////////////////////////////////////////////////////
-// Algorithmia is (c) 2014 Solutions Design. All rights reserved.
+// Algorithmia is (c) 2018 Solutions Design. All rights reserved.
 // https://github.com/SolutionsDesign/Algorithmia
 //////////////////////////////////////////////////////////////////////
 // COPYRIGHTS:
-// Copyright (c) 2014 Solutions Design. All rights reserved.
+// Copyright (c) 2018 Solutions Design. All rights reserved.
 // 
 // The Algorithmia library sourcecode and its accompanying tools, tests and support code
 // are released under the following license: (BSD2)
@@ -94,6 +94,16 @@ namespace SD.Tools.Algorithmia.GeneralDataStructures
 			{
 				// ignore. Versioning issue -> data doesn't contain the comparer. 
 			}
+		}
+
+
+		/// <summary>
+		/// Clones this instance using shallow copy
+		/// </summary>
+		/// <returns></returns>
+		public MultiValueDictionary<TKey, TValue> Clone()
+		{
+			return this.MemberwiseClone() as MultiValueDictionary<TKey, TValue>;
 		}
 
 

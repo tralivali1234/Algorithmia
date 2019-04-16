@@ -1,9 +1,9 @@
 ﻿//////////////////////////////////////////////////////////////////////
-// Algorithmia is (c) 2014 Solutions Design. All rights reserved.
+// Algorithmia is (c) 2018 Solutions Design. All rights reserved.
 // https://github.com/SolutionsDesign/Algorithmia
 //////////////////////////////////////////////////////////////////////
 // COPYRIGHTS:
-// Copyright (c) 2014 Solutions Design. All rights reserved.
+// Copyright (c) 2018 Solutions Design. All rights reserved.
 // 
 // The Algorithmia library sourcecode and its accompanying tools, tests and support code
 // are released under the following license: (BSD2)
@@ -135,6 +135,57 @@ namespace SD.Tools.Algorithmia.UtilityClasses
 			}
 
 			return areEqual;
+		}
+
+
+		/// <summary>
+		/// Performs the specified action, either inside a lock on syncRoot if isSynchronized is true, or normally, if isSynchronized is false.
+		/// </summary>
+		/// <param name="toPerform">To perform.</param>
+		/// <param name="syncRoot">The synchronize root to lock on.</param>
+		/// <param name="isSynchronized">if set to <c>true</c> the caller is synchronized.</param>
+		public static void PerformSyncedAction(Action toPerform, object syncRoot, bool isSynchronized)
+		{
+			if(toPerform == null)
+			{
+				return;
+			}
+			if(isSynchronized)
+			{
+				lock(syncRoot)
+				{
+					toPerform();
+				}
+			}
+			else
+			{
+				toPerform();
+			}
+		}
+
+
+		/// <summary>
+		/// Performs the specified action, either inside a lock on syncRoot if isSynchronized is true, or normally, if isSynchronized is false.
+		/// </summary>
+		/// <typeparam name="T">The type of the element to return</typeparam>
+		/// <param name="toPerform">To perform.</param>
+		/// <param name="syncRoot">The synchronize root to lock on.</param>
+		/// <param name="isSynchronized">if set to <c>true</c> the caller is synchronized.</param>
+		/// <returns>the result of toPerform</returns>
+		public static T PerformSyncedAction<T>(Func<T> toPerform, object syncRoot, bool isSynchronized)
+		{
+			if(toPerform == null)
+			{
+				return default(T);
+			}
+			if(isSynchronized)
+			{
+				lock(syncRoot)
+				{
+					return toPerform();
+				}
+			}
+			return toPerform();
 		}
 	}
 }

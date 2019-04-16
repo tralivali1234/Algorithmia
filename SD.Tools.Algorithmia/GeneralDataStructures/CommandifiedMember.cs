@@ -1,9 +1,9 @@
 ﻿//////////////////////////////////////////////////////////////////////
-// Algorithmia is (c) 2014 Solutions Design. All rights reserved.
+// Algorithmia is (c) 2018 Solutions Design. All rights reserved.
 // https://github.com/SolutionsDesign/Algorithmia
 //////////////////////////////////////////////////////////////////////
 // COPYRIGHTS:
-// Copyright (c) 2014 Solutions Design. All rights reserved.
+// Copyright (c) 2018 Solutions Design. All rights reserved.
 // 
 // The Algorithmia library sourcecode and its accompanying tools, tests and support code
 // are released under the following license: (BSD2)
@@ -58,9 +58,10 @@ namespace SD.Tools.Algorithmia.GeneralDataStructures
 		private TValue _memberValue;
 		private readonly TChangeType _changeTypeValueToUse;
 		private readonly string _memberName;
-		private readonly string _setValueDescription;
 		private readonly ErrorContainer _loggedErrors;
 		private bool _elementChangedBound, _elementRemovedBound;
+		private MemberValueElementChangedHandler _sharedValueChangedHandler;
+		private MemberValueElementRemovedHandler _sharedValueRemovedHandler;
 		#endregion
 
 		#region Events
@@ -129,14 +130,15 @@ namespace SD.Tools.Algorithmia.GeneralDataStructures
 		/// <param name="initialValue">The initial value.</param>
 		public CommandifiedMember(string memberName, TChangeType changeTypeValueToUse, ErrorContainer loggedErrors, TValue initialValue)
 		{
-			ArgumentVerifier.ShouldBeTrue((s) => !String.IsNullOrEmpty(memberName), memberName, "memberName has to have a value");
+			if(string.IsNullOrEmpty(memberName))
+			{
+				throw new ArgumentException("memberName has to have a value");
+			}
 			_loggedErrors = loggedErrors;
 			_changeTypeValueToUse = changeTypeValueToUse;
 			_memberName = memberName;
 			_memberValue = initialValue;
 			this.ThrowExceptionOnValidationError=true;
-			_setValueDescription = "Set a new value to '" + _memberName + "'";
-
 			BindToElementChanged();
 			BindToElementRemoved();
 		}
@@ -159,12 +161,12 @@ namespace SD.Tools.Algorithmia.GeneralDataStructures
 		/// </summary>
 		public void UnbindFromElementChanged()
 		{
-			if(_elementChangedBound)
+			if(_elementChangedBound && typeof(INotifyAsChanged).IsAssignableFrom(typeof(TValue)))
 			{
-				INotifyAsChanged changeAwareValue = _memberValue as INotifyAsChanged;
+				INotifyAsChanged changeAwareValue = (INotifyAsChanged)_memberValue;
 				if(changeAwareValue != null)
 				{
-					changeAwareValue.HasBeenChanged -= new EventHandler(_memberValue_ElementChanged);
+					changeAwareValue.HasBeenChanged -= this.SharedValueChangedHandler;
 					_elementChangedBound = false;
 				}
 			}
@@ -176,12 +178,12 @@ namespace SD.Tools.Algorithmia.GeneralDataStructures
 		/// </summary>
 		public void UnbindFromElementRemoved()
 		{
-			if(_elementRemovedBound)
+			if(_elementRemovedBound && typeof(INotifyAsRemoved).IsAssignableFrom(typeof(TValue)))
 			{
-				INotifyAsRemoved removeAwareValue = _memberValue as INotifyAsRemoved;
+				INotifyAsRemoved removeAwareValue = (INotifyAsRemoved)_memberValue;
 				if(removeAwareValue != null)
 				{
-					removeAwareValue.HasBeenRemoved -= new EventHandler(_memberValue_ElementRemoved);
+					removeAwareValue.HasBeenRemoved -= this.SharedValueRemovedHandler;
 					_elementRemovedBound = false;
 				}
 			}
@@ -193,12 +195,12 @@ namespace SD.Tools.Algorithmia.GeneralDataStructures
 		/// </summary>
 		public void BindToElementChanged()
 		{
-			if(!_elementChangedBound)
+			if(!_elementChangedBound && typeof(INotifyAsChanged).IsAssignableFrom(typeof(TValue)))
 			{
-				INotifyAsChanged changeAwareValue = _memberValue as INotifyAsChanged;
+				INotifyAsChanged changeAwareValue = (INotifyAsChanged)_memberValue;
 				if(changeAwareValue != null)
 				{
-					changeAwareValue.HasBeenChanged += new EventHandler(_memberValue_ElementChanged);
+					changeAwareValue.HasBeenChanged += this.SharedValueChangedHandler;
 					_elementChangedBound = true;
 				}
 			}
@@ -210,12 +212,12 @@ namespace SD.Tools.Algorithmia.GeneralDataStructures
 		/// </summary>
 		public void BindToElementRemoved()
 		{
-			if(!_elementRemovedBound)
+			if(!_elementRemovedBound && typeof(INotifyAsRemoved).IsAssignableFrom(typeof(TValue)))
 			{
-				INotifyAsRemoved removeAwareValue = _memberValue as INotifyAsRemoved;
+				INotifyAsRemoved removeAwareValue = (INotifyAsRemoved)_memberValue;
 				if(removeAwareValue != null)
 				{
-					removeAwareValue.HasBeenRemoved += new EventHandler(_memberValue_ElementRemoved);
+					removeAwareValue.HasBeenRemoved += this.SharedValueRemovedHandler;
 					_elementRemovedBound = true;
 				}
 			}
@@ -339,6 +341,22 @@ namespace SD.Tools.Algorithmia.GeneralDataStructures
 
 		#region Class Property Declarations
 		/// <summary>
+		/// Gets the shared valuechanged handler, and creates one if it's not already created.
+		/// </summary>
+		private MemberValueElementChangedHandler SharedValueChangedHandler
+		{
+			get { return _sharedValueChangedHandler ?? (_sharedValueChangedHandler = _memberValue_ElementChanged); }
+		}
+
+		/// <summary>
+		/// Gets the shared valueremoved handler, and creates one if it's not already created.
+		/// </summary>
+		private MemberValueElementRemovedHandler SharedValueRemovedHandler
+		{
+			get { return _sharedValueRemovedHandler ?? (_sharedValueRemovedHandler = _memberValue_ElementRemoved); }
+		}
+		
+		/// <summary>
 		/// Gets or sets a value indicating whether an exception should be thrown if validation fails (true, default) or not (false)
 		/// </summary>
 		public bool ThrowExceptionOnValidationError { get; set; }
@@ -379,12 +397,18 @@ namespace SD.Tools.Algorithmia.GeneralDataStructures
 					}
 					else
 					{
-						CommandQueueManagerSingleton.GetInstance().EnqueueAndRunCommand(
-																		new Command<TValue>(
-																			() => this.SetMemberValue(correctValue),
-																			() => _memberValue,
-																			v => this.SetMemberValue(v),
-																			_setValueDescription));
+						if(CommandQueueManagerSingleton.GetInstance().IsInNonUndoablePeriod)
+						{
+							// skip ceremony as commands aren't undoable anyway.
+							SetMemberValue(correctValue);
+						}
+						else
+						{
+							CommandQueueManagerSingleton.GetInstance().EnqueueAndRunCommand(new Command<TValue>(() => this.SetMemberValue(correctValue),
+																											    () => _memberValue,
+																											    v => this.SetMemberValue(v),
+																											    _memberName));
+						}
 					}
 				}
 			}

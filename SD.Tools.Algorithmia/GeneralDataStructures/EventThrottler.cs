@@ -1,9 +1,9 @@
 ﻿//////////////////////////////////////////////////////////////////////
-// Algorithmia is (c) 2014 Solutions Design. All rights reserved.
+// Algorithmia is (c) 2018 Solutions Design. All rights reserved.
 // https://github.com/SolutionsDesign/Algorithmia
 //////////////////////////////////////////////////////////////////////
 // COPYRIGHTS:
-// Copyright (c) 2014 Solutions Design. All rights reserved.
+// Copyright (c) 2018 Solutions Design. All rights reserved.
 // 
 // The Algorithmia library sourcecode and its accompanying tools, tests and support code
 // are released under the following license: (BSD2)
@@ -131,7 +131,7 @@ namespace SD.Tools.Algorithmia.GeneralDataStructures
 			_timer = new Timer(intervalToUse);
 			_timer.SynchronizingObject = synchronizingObject;
 			_timer.AutoReset = false;
-			_timer.Elapsed += new ElapsedEventHandler(_timer_Elapsed);
+			_timer.Elapsed += _timer_Elapsed;
 			_eventArgsComparer = eventArgsComparer;
 			this.Enabled = true;
 		}
